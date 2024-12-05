@@ -62,7 +62,6 @@ app.use('/uploads', express.static('uploads'));
 
 // Session configuration
 app.use(session({
-  app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key', // Käytä ympäristömuuttujaa jos mahdollista
   resave: false,
   saveUninitialized: false,
