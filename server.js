@@ -27,7 +27,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:3000'];
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://hlokortti.netlify.app' // Vaihdettu oikeaksi domain-nimeksi
+  ];
+  
   const origin = req.headers.origin;
   
   if (allowedOrigins.includes(origin)) {
