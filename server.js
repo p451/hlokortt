@@ -1,13 +1,13 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
+const session = require('express-session');  // Tämä ennen SQLiteStorea
 const SQLiteStore = require('connect-sqlite3')(session);
+const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
-const session = require('express-session');
 const multer = require('multer');
 const csv = require('csv-parse');
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors');
 
 const app = express();
 
