@@ -79,7 +79,7 @@ app.use(helmet({
 app.use('/uploads', express.static('uploads'));
 
 // Session configuration
-pp.use(session({
+app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
     dir: './',
