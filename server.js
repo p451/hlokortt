@@ -6,8 +6,25 @@ const multer = require('multer');
 const csv = require('csv-parse');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
+
+const corsOptions = {
+  origin: ['https://hlokortti.netlify.app', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'Cache-Control',
+    'Pragma'
+  ],
+  maxAge: 600 // Increase preflight cache time to 10 minutes
+};
+
+app.use(cors(corsOptions));
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -62,16 +79,16 @@ app.use('/uploads', express.static('uploads'));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key', // Käytä ympäristömuuttujaa jos mahdollista
+  secret: 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   name: 'sessionId',
   cookie: { 
-    secure: true, // Tuotannossa tämän pitää olla true
+    secure: true, // Enable for HTTPS
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'none', // Cross-domain kommunikaatiota varten
-    domain: '.onrender.com' // Render-domainia varten
+    sameSite: 'none', // Required for cross-site cookies
+    domain: '.onrender.com' // Update this to match your domain
   },
   rolling: true
 }));
@@ -382,11 +399,12 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Auth check endpoint with logging
-// Etsi server.js tiedostosta auth check endpoint (noin rivi 240) ja korvaa se tällä:
+app.options('/api/check-auth', cors(corsOptions));
 
-app.get('/api/check-auth', requireAuth, (req, res) => {
+app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
   console.log('Checking auth status for user:', req.session.userId);
+  console.log('Session:', req.session);  // Lisätään debug-loki
+  console.log('Headers:', req.headers);  // Lisätään debug-loki
   
   db.get(
     `SELECT id, name, company, email, membershipLevel, validUntil, startDate, 
@@ -408,6 +426,10 @@ app.get('/api/check-auth', requireAuth, (req, res) => {
       user.profileImage = user.profileImage || '/api/placeholder/400/400';
       user.logoUrl = user.logoUrl || '/api/placeholder/100/100';
 
+      // Asetetaan CORS-headerit eksplisiittisesti
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN);
+      
       res.json(user);
     }
   );
