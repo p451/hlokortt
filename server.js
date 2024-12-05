@@ -61,15 +61,17 @@ app.use('/uploads', express.static('uploads'));
 
 // Session configuration
 app.use(session({
-  secret: 'your-secret-key',
+  app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key', // Käytä ympäristömuuttujaa jos mahdollista
   resave: false,
   saveUninitialized: false,
   name: 'sessionId',
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Tuotannossa tämän pitää olla true
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
+    sameSite: 'none', // Cross-domain kommunikaatiota varten
+    domain: '.onrender.com' // Render-domainia varten
   },
   rolling: true
 }));
