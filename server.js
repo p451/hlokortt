@@ -1,5 +1,6 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const SQLiteStore = require('connect-sqlite3')(session);
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const multer = require('multer');
@@ -78,17 +79,21 @@ app.use(helmet({
 app.use('/uploads', express.static('uploads'));
 
 // Session configuration
-app.use(session({
-  secret: 'your-secret-key',
+pp.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: './',
+    table: 'sessions'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   name: 'sessionId',
   cookie: { 
-    secure: true, // Enable for HTTPS
+    secure: true,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'none', // Required for cross-site cookies
-    domain: '.onrender.com' // Update this to match your domain
+    sameSite: 'none',
   },
   rolling: true
 }));
