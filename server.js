@@ -89,7 +89,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   console.log('Session debug:', {
       sessionId: req.sessionID,
-      userId: req.session.userId,
+      userId: req.session ? req.session.userId : null,
       path: req.path,
       method: req.method,
       hasSession: !!req.session
