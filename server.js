@@ -228,6 +228,51 @@ db.serialize(() => {
     }
   });
 });
+
+// Väliaikainen admin-käyttäjän luonti - POISTA TÄMÄ HETI KÄYTÖN JÄLKEEN
+(async () => {
+  try {
+    // Tarkista onko admin jo olemassa
+    db.get('SELECT id FROM employees WHERE username = ?', ['admin'], async (err, row) => {
+      if (err) {
+        console.error('Admin check failed:', err);
+        return;
+      }
+      
+      // Jos adminia ei ole, luodaan se
+      if (!row) {
+        const hashedPassword = await bcrypt.hash('admin1', 10);
+        
+        const adminUser = [
+          'admin1',                  // username
+          hashedPassword,           // password
+          'Admin User',             // name
+          'Admin Company',          // company
+          'admin@example.com',      // email
+          'PLATINUM',               // membershipLevel
+          '2025-12-31',            // validUntil
+          '2024-01-01',            // startDate
+          1                        // isAdmin
+        ];
+
+        db.run(`
+          INSERT INTO employees (
+            username, password, name, company, email,
+            membershipLevel, validUntil, startDate, isAdmin
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, adminUser, (err) => {
+          if (err) {
+            console.error('Admin creation failed:', err);
+          } else {
+            console.log('Admin user created successfully');
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Admin creation error:', error);
+  }
+})();
   
 
 
