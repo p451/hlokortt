@@ -67,7 +67,7 @@ sessionsDb.on('error', function(error) {
 app.use((req, res, next) => {
   const allowedOrigins = [
     'http://localhost:3000',
-    'https://hlokortt.netlify.app' // Vaihdettu oikeaksi domain-nimeksi
+    'https://hlokortti.netlify.app' 
   ];
   
   const origin = req.headers.origin;
