@@ -44,10 +44,30 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+const dbPath = './sessions.db';
+const dbDir = './';
+
+// Tarkistetaan hakemisto
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Tarkistetaan tietokantayhteys
+const sessionsDb = new SQLiteStore({
+    db: 'sessions.db',
+    dir: './',
+    table: 'sessions'
+});
+
+// Lisätään virheenkäsittely
+sessionsDb.on('error', function(error) {
+    console.error('Session store error:', error);
+});
+
 app.use((req, res, next) => {
   const allowedOrigins = [
     'http://localhost:3000',
-    'https://hlokortti.netlify.app'  // Nyt oikea domain
+    'https://hlokortt.netlify.app' // Vaihdettu oikeaksi domain-nimeksi
   ];
   
   const origin = req.headers.origin;
@@ -56,12 +76,24 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie');
   }
   
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log('Session debug:', {
+      sessionId: req.sessionID,
+      userId: req.session.userId,
+      path: req.path,
+      method: req.method,
+      hasSession: !!req.session
+  });
   next();
 });
 
