@@ -1,7 +1,6 @@
-require('dotenv').config();
 const express = require('express');
-const cors = require('cors'); 
-const session = require('express-session');
+const cors = require('cors');
+const session = require('express-session');  // Tämä ennen SQLiteStorea
 const SQLiteStore = require('connect-sqlite3')(session);
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
@@ -9,109 +8,142 @@ const multer = require('multer');
 const csv = require('csv-parse');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet');
 
 const app = express();
 
-app.use(express.json({ limit: '1mb' }));
+const corsOptions = {
+  origin: ['https://hlokortti.netlify.app', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'Cache-Control',
+    'Pragma'
+  ],
+  maxAge: 600 // Increase preflight cache time to 10 minutes
+};
 
-// Session configuration
-app.use(session({
- store: new SQLiteStore({
-   db: 'sessions.db',
-   dir: './',
-   table: 'sessions',
-   concurrentDB: true
- }),
- secret: process.env.SESSION_SECRET,
- resave: true,
- saveUninitialized: true,
- name: 'sessionId',
- cookie: { 
-   secure: process.env.NODE_ENV === 'production',
-   httpOnly: true,
-   maxAge: 24 * 60 * 60 * 1000,
-   sameSite: 'none'
- },
- rolling: true
-}));
+app.use(cors(corsOptions));
 
 // Multer storage configuration
 const storage = multer.diskStorage({
- destination: function (req, file, cb) {
-   const uploadDir = 'uploads';
-   if (!fs.existsSync(uploadDir)) {
-     fs.mkdirSync(uploadDir);
-   }
-   cb(null, uploadDir);
- },
- filename: function (req, file, cb) {
-   const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-   cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
- }
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
+  }
 });
 
 const upload = multer({ storage: storage });
 
-// CORS configuration
-app.use((req, res, next) => {
- const allowedOrigins = [
-   'http://localhost:3000',
-   process.env.CORS_ORIGIN
- ];
- 
- const origin = req.headers.origin;
- 
- if (allowedOrigins.includes(origin)) {
-   res.header('Access-Control-Allow-Origin', origin);
-   res.header('Access-Control-Allow-Credentials', 'true');
-   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-   res.header(
-     'Access-Control-Allow-Headers', 
-     'Content-Type, Authorization, Cookie, Set-Cookie'
-   );
- }
- 
- if (req.method === 'OPTIONS') {
-   return res.sendStatus(200);
- }
- next();
+const dbPath = './sessions.db';
+const dbDir = './';
+
+// Tarkistetaan hakemisto
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Tarkistetaan tietokantayhteys
+const sessionsDb = new SQLiteStore({
+    db: 'sessions.db',
+    dir: './',
+    table: 'sessions'
 });
 
-// Session debug middleware
-app.use((req, res, next) => {
- console.log('Session debug:', {
-   sessionId: req.sessionID,
-   userId: req.session ? req.session.userId : null,
-   path: req.path,
-   method: req.method,
-   hasSession: !!req.session
- });
- next();
+// Lisätään virheenkäsittely
+sessionsDb.on('error', function(error) {
+    console.error('Session store error:', error);
 });
 
-// Helmet configuration
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://hlokortt.netlify.app' // Vaihdettu oikeaksi domain-nimeksi
+  ];
+  
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie');
+  }
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log('Session debug:', {
+      sessionId: req.sessionID,
+      userId: req.session ? req.session.userId : null,
+      path: req.path,
+      method: req.method,
+      hasSession: !!req.session
+  });
+  next();
+});
+
+app.use(express.json({ limit: '1mb' }));
+
+const helmet = require('helmet');
 app.use(helmet({
- contentSecurityPolicy: false,
- crossOriginEmbedderPolicy: false,
- crossOriginResourcePolicy: false
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
 }));
 
-// Static file serving
+// Add static file serving for uploads
 app.use('/uploads', express.static('uploads'));
 
+// Session configuration
+app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: './',
+    table: 'sessions'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  name: 'sessionId',
+  cookie: { 
+    secure: true,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'none',
+    domain: '.onrender.com'
+  },
+  rolling: true
+}));
+
 app.get('/api/placeholder/:width/:height', (req, res) => {
- const { width, height } = req.params;
- res.sendFile(path.join(__dirname, 'uploads', 'default-logo.png'));
+  const { width, height } = req.params;
+  res.sendFile(path.join(__dirname, 'uploads', 'default-logo.png'));
 });
 
-// Database connection
+app.use(express.json());
+
+// Enable more detailed SQLite logging
 const db = new sqlite3.Database('employees.db', (err) => {
- if (err) {
-   console.error('Database connection error:', err);
- } else {
-   console.log('Connected to database successfully');
- }
+  if (err) {
+    console.error('Database connection error:', err);
+  } else {
+    console.log('Connected to database successfully');
+  }
 });
 
 // Database initialization
