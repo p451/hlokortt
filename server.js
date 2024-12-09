@@ -47,7 +47,7 @@ const upload = multer({ storage: storage });
 app.use((req, res, next) => {
   const allowedOrigins = [
     'http://localhost:3000',
-    'https://hlokortti.netlify.app' // Vaihdettu oikeaksi domain-nimeksi
+    'https://hlokortti.netlify.app'  // Nyt oikea domain
   ];
   
   const origin = req.headers.origin;
@@ -56,7 +56,6 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie');
   }
   
