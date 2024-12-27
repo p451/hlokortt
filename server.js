@@ -111,17 +111,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((req, res, next) => {
-  console.log('Session debug:', {
-      sessionId: req.sessionID,
-      userId: req.session ? req.session.userId : null,
-      path: req.path,
-      method: req.method,
-      hasSession: !!req.session
-  });
-  next();
-});
-
 app.use(express.json({ limit: '1mb' }));
 
 const helmet = require('helmet');
@@ -960,6 +949,21 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
+// 1. Combine session debugging middlewares
+app.use((req, res, next) => {
+  console.log('Session debug:', {
+    sessionId: req.sessionID,
+    userId: req.session?.userId,
+    isAdmin: req.session?.isAdmin,
+    path: req.path,
+    method: req.method,
+    hasSession: !!req.session,
+    cookies: req.headers.cookie
+  });
+  next();
+});
+
+// 2. Error handling middleware at the end
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ 
@@ -968,26 +972,5 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.use((req, res, next) => {
-  console.log('Session state:', {
-    id: req.session.id,
-    userId: req.session.userId,
-    path: req.path,
-    cookies: req.headers.cookie
-  });
-  next();
-});
-
-app.use((req, res, next) => {
-  console.log('Session debug:', {
-    sessionId: req.sessionID,
-    userId: req.session?.userId,
-    isAdmin: req.session?.isAdmin,
-    path: req.path,
-    method: req.method,
-    hasSession: !!req.session
-  });
-  next();
-});
-
+// 3. Export after all middleware/routes
 module.exports = app;
