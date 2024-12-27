@@ -21,7 +21,9 @@ const corsOptions = {
     'Authorization',
     'Accept',
     'Cache-Control',
-    'Pragma'
+    'Pragma',
+    'Cookie',
+    'Set-Cookie'
   ],
   exposedHeaders: ['Set-Cookie'],
   maxAge: 600 // Increase preflight cache time to 10 minutes
@@ -40,7 +42,7 @@ app.use(session({
   resave: true, // Changed to true
   saveUninitialized: false,
   cookie: {
-    secure: true, // Required for HTTPS
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'none', // Required for cross-origin
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true
@@ -50,7 +52,10 @@ app.use(session({
 }));
 
 // Add this to parse JSON bodies
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+
+const helmet = require('helmet');
+app.use(helmet());
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -238,8 +243,12 @@ db.serialize(() => {
 // Database helper functions
 const getUserByUsername = (username) => {
   return new Promise((resolve, reject) => {
-    db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
-      if (err) reject(err);
+    db.get('SELECT * FROM employees WHERE username = ?', [username], (err, row) => {
+      if (err) {
+        console.error('Database error in getUserByUsername:', err);
+        reject(err);
+        return;
+      }
       resolve(row);
     });
   });
