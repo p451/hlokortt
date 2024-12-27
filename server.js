@@ -35,7 +35,7 @@ app.options('*', cors(corsOptions));
 
 // Add this right after CORS configuration
 app.use(session({
-  store: new SQLiteStore(),
+  store: new SQLiteStore({ db: 'employees.db', dir: './', table: 'sessions' }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: true, // Changed to true
   saveUninitialized: false,
