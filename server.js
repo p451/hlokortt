@@ -33,6 +33,24 @@ app.use(cors(corsOptions));
 // Enable pre-flight requests for all routes
 app.options('*', cors(corsOptions));
 
+// Add this right after CORS configuration
+app.use(session({
+  store: new SQLiteStore(),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true, // Required for HTTPS
+    sameSite: 'none', // Required for cross-origin
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true
+  },
+  name: 'sessionId' // Explicit session cookie name
+}));
+
+// Add this to parse JSON bodies
+app.use(express.json());
+
 // Multer storage configuration
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -412,17 +430,16 @@ app.post('/api/login', async (req, res) => {
           }
 
           req.session.userId = user.id;
-          console.log('Session created:', req.session);
+          req.session.isAdmin = user.isAdmin;
+          await new Promise(resolve => req.session.save(resolve));
 
           res.json({
-            id: user.id,
-            name: user.name,
-            company: user.company,
-            validUntil: user.validUntil,
-            isAdmin: user.isAdmin,
-            membershipLevel: user.membershipLevel,
-            profileImage: user.profileImage,
-            logoUrl: user.logoUrl
+            success: true,
+            user: {
+              id: user.id,
+              username: user.username,
+              isAdmin: user.isAdmin
+            }
           });
         } catch (bcryptError) {
           console.error('Bcrypt error:', bcryptError);
@@ -945,6 +962,16 @@ app.use((err, req, res, next) => {
     error: 'Internal Server Error',
     message: err.message 
   });
+});
+
+app.use((req, res, next) => {
+  console.log('Session state:', {
+    id: req.session.id,
+    userId: req.session.userId,
+    path: req.path,
+    cookies: req.headers.cookie
+  });
+  next();
 });
 
 module.exports = app;
