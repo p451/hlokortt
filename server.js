@@ -8,6 +8,7 @@ const multer = require('multer');
 const csv = require('csv-parse');
 const path = require('path');
 const fs = require('fs');
+const helmet = require('helmet');
 
 const app = express();
 
@@ -54,7 +55,7 @@ app.use(session({
 // Add this to parse JSON bodies
 app.use(express.json({ limit: '1mb' }));
 
-const helmet = require('helmet');
+
 app.use(helmet());
 
 // Multer storage configuration
@@ -117,12 +118,6 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '1mb' }));
 
-const helmet = require('helmet');
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: false
-}));
 
 // Add static file serving for uploads
 app.use('/uploads', express.static('uploads'));
@@ -974,7 +969,7 @@ app.use((req, res, next) => {
     path: req.path,
     method: req.method,
     hasSession: !!req.session,
-    cookies: req.headers.cookie
+    cookies: req.headers.cookies
   });
   next();
 });
