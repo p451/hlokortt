@@ -37,7 +37,7 @@ app.options('*', cors(corsOptions));
 app.use(session({
   store: new SQLiteStore(),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
+  resave: true, // Changed to true
   saveUninitialized: false,
   cookie: {
     secure: true, // Required for HTTPS
@@ -45,7 +45,8 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true
   },
-  name: 'sessionId' // Explicit session cookie name
+  name: 'sessionId', // Explicit session cookie name
+  rolling: true // Refresh session with each request
 }));
 
 // Add this to parse JSON bodies
@@ -284,6 +285,26 @@ const requireAdmin = async (req, res, next) => {
   );
 };
 
+const checkAdmin = async (req, res, next) => {
+  console.log('Admin check - Session:', req.session);
+  
+  if (!req.session || !req.session.userId || !req.session.isAdmin) {
+    console.log('Admin check failed:', { 
+      hasSession: !!req.session,
+      userId: req.session?.userId,
+      isAdmin: req.session?.isAdmin 
+    });
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Unauthorized - Admin access required' 
+    });
+  }
+  next();
+};
+
+// Apply to admin routes
+app.use('/api/admin/*', checkAdmin);
+
 app.post('/api/upload-profile-image', requireAuth, upload.single('profileImage'), async (req, res) => {
   console.log('Profile image upload attempt:', req.file);
   
@@ -399,57 +420,40 @@ app.get('/api/admin/privacy-policy/history', requireAdmin, (req, res) => {
 
 // Login endpoint with detailed logging
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log('Login attempt:', { username, password }); // Lisätty password debug-tulostukseen
-
   try {
-    db.get(
-      'SELECT * FROM employees WHERE username = ?',
-      [username],
-      async (err, user) => {
-        if (err) {
-          console.error('Database error during login:', err);
-          return res.status(500).json({ error: 'Server error' });
-        }
+    const { username, password } = req.body;
+    console.log('Login attempt:', { username, password });
 
-        console.log('Found user:', user); // Muutettu näyttämään koko user-objekti
+    const user = await getUserByUsername(username);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
-        if (!user) {
-          return res.status(401).json({ error: 'User not found' });
-        }
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
-        try {
-          console.log('Attempting password comparison:');
-          console.log('Input password:', password);
-          console.log('Stored hash:', user.password);
-          const passwordMatch = await bcrypt.compare(password, user.password);
-          console.log('Password match:', passwordMatch);
+    // Explicitly set session data
+    req.session.userId = user.id;
+    req.session.isAdmin = Boolean(user.isAdmin);
+    
+    // Force session save
+    await new Promise((resolve) => req.session.save(resolve));
 
-          if (!passwordMatch) {
-            return res.status(401).json({ error: 'Invalid password' });
-          }
-
-          req.session.userId = user.id;
-          req.session.isAdmin = user.isAdmin;
-          await new Promise(resolve => req.session.save(resolve));
-
-          res.json({
-            success: true,
-            user: {
-              id: user.id,
-              username: user.username,
-              isAdmin: user.isAdmin
-            }
-          });
-        } catch (bcryptError) {
-          console.error('Bcrypt error:', bcryptError);
-          res.status(500).json({ error: 'Password comparison failed' });
-        }
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: Boolean(user.isAdmin),
+        name: user.name,
+        company: user.company
       }
-    );
+    });
   } catch (error) {
-    console.error('Unexpected error during login:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Login failed' });
   }
 });
 
@@ -974,11 +978,16 @@ app.use((req, res, next) => {
   next();
 });
 
-module.exports = app;
-
-fetch('https://hlokortt.onrender.com/api/login', {
-  credentials: 'include',
-  headers: {
-    'Content-Type': 'application/json'
-  }
+app.use((req, res, next) => {
+  console.log('Session debug:', {
+    sessionId: req.sessionID,
+    userId: req.session?.userId,
+    isAdmin: req.session?.isAdmin,
+    path: req.path,
+    method: req.method,
+    hasSession: !!req.session
+  });
+  next();
 });
+
+module.exports = app;
