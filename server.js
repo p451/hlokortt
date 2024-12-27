@@ -418,42 +418,52 @@ app.get('/api/admin/privacy-policy/history', requireAdmin, (req, res) => {
   );
 });
 
-// Login endpoint with detailed logging
+// Update login route
 app.post('/api/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    console.log('Login attempt:', { username, password });
+  const { username, password } = req.body;
+  console.log('Login attempt:', { username, password });
 
-    const user = await getUserByUsername(username);
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM employees WHERE username = ?', [username], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    console.log('Found user:', user);
+
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ error: 'User not found' });
     }
 
     const match = await bcrypt.compare(password, user.password);
+    console.log('Password match:', match);
+
     if (!match) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid password' });
     }
 
-    // Explicitly set session data
+    // Set session data
     req.session.userId = user.id;
-    req.session.isAdmin = Boolean(user.isAdmin);
-    
-    // Force session save
-    await new Promise((resolve) => req.session.save(resolve));
+    req.session.isAdmin = user.isAdmin === 1; // Ensure boolean conversion
+    console.log('Setting session:', { userId: user.id, isAdmin: user.isAdmin });
 
+    // Save session explicitly
+    await new Promise(resolve => req.session.save(resolve));
+
+    // Send response with user data
     res.json({
       success: true,
       user: {
         id: user.id,
         username: user.username,
-        isAdmin: Boolean(user.isAdmin),
-        name: user.name,
-        company: user.company
+        isAdmin: user.isAdmin === 1  // Ensure boolean conversion
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ success: false, message: 'Login failed' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
