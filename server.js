@@ -69,7 +69,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const dbPath = './sessions.db';
+const dbPath = './employees.db';  // Changed from database.sqlite
 const dbDir = './';
 
 // Tarkistetaan hakemisto
@@ -79,9 +79,9 @@ if (!fs.existsSync(dbDir)) {
 
 // Tarkistetaan tietokantayhteys
 const sessionsDb = new SQLiteStore({
-    db: 'sessions.db',
+    db: 'employees.db',  // Point to existing database
     dir: './',
-    table: 'sessions'
+    table: 'sessions'  // Specify sessions table
 });
 
 // Lisätään virheenkäsittely
@@ -144,7 +144,7 @@ app.get('/api/placeholder/:width/:height', (req, res) => {
 app.use(express.json());
 
 // Enable more detailed SQLite logging
-const db = new sqlite3.Database('employees.db', (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Database connection error:', err);
   } else {
