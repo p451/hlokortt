@@ -11,6 +11,7 @@ const fs = require('fs');
 
 const app = express();
 
+// Keep existing origins but add additional configuration
 const corsOptions = {
   origin: ['https://hlokortti.netlify.app', 'http://localhost:3000'],
   credentials: true,
@@ -22,10 +23,15 @@ const corsOptions = {
     'Cache-Control',
     'Pragma'
   ],
+  exposedHeaders: ['Set-Cookie'],
   maxAge: 600 // Increase preflight cache time to 10 minutes
 };
 
+// Apply CORS middleware before routes
 app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -109,25 +115,17 @@ app.use(helmet({
 // Add static file serving for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Session configuration
+// Configure session after CORS
 app.use(session({
-  store: new SQLiteStore({
-    db: 'sessions.db',
-    dir: './',
-    table: 'sessions'
-  }),
+  store: new SQLiteStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  name: 'sessionId',
-  cookie: { 
-    secure: true,
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'none',
-   
-  },
-  rolling: true
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 app.get('/api/placeholder/:width/:height', (req, res) => {
@@ -941,4 +939,19 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: err.message 
+  });
+});
+
 module.exports = app;
+
+fetch('https://hlokortt.onrender.com/api/login', {
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
