@@ -12,7 +12,7 @@ const fs = require('fs');
 const app = express();
 
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: ['https://hlokortti.netlify.app', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -440,23 +440,38 @@ app.post('/api/login', async (req, res) => {
 
 app.options('/api/check-auth', cors(corsOptions));
 
-app.get('/api/check-auth', cors(corsOptions), (req, res) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user) {
-      return res.status(401).json({ authenticated: false });
+app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
+  console.log('Checking auth status for user:', req.session.userId);
+  console.log('Session:', req.session);  // Lisätään debug-loki
+  console.log('Headers:', req.headers);  // Lisätään debug-loki
+  
+  db.get(
+    `SELECT id, name, company, email, membershipLevel, validUntil, startDate, 
+            profileImage, logoUrl, firstLogin, isAdmin 
+     FROM employees 
+     WHERE id = ?`,
+    [req.session.userId],
+    (err, user) => {
+      if (err) {
+        console.error('Database error during auth check:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
+      if (!user) {
+        console.log('User not found during auth check');
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Varmistetaan että profileImage ja logoUrl ovat aina määritelty
+      user.profileImage = user.profileImage || '/api/placeholder/400/400';
+      user.logoUrl = user.logoUrl || '/api/placeholder/100/100';
+
+      // Asetetaan CORS-headerit eksplisiittisesti
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN);
+      
+      res.json(user);
     }
-    
-    return res.status(200).json({ 
-      authenticated: true,
-      user: req.user 
-    });
-  } catch (error) {
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
-    });
-  }
+  );
 });
 
 // Logout endpoint with logging
