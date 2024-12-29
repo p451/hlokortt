@@ -74,13 +74,20 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-
+const dbPath = './employees.db';  // Changed from database.sqlite
+const dbDir = './';
 
 // Tarkistetaan hakemisto
-
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 
 // Tarkistetaan tietokantayhteys
-
+const sessionsDb = new SQLiteStore({
+    db: 'employees.db',  // Point to existing database
+    dir: './',
+    table: 'sessions'  // Specify sessions table
+});
 
 // Lisätään virheenkäsittely
 sessionsDb.on('error', function(error) {
