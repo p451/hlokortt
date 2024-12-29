@@ -130,18 +130,7 @@ app.use(express.json({ limit: '1mb' }));
 // Add static file serving for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Configure session after CORS
-app.use(session({
-  store: new SQLiteStore,
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+
 
 app.get('/api/placeholder/:width/:height', (req, res) => {
   const { width, height } = req.params;
