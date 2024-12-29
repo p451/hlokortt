@@ -37,20 +37,44 @@ app.use(cors(corsOptions));
 // Enable pre-flight requests for all routes
 app.options('*', cors(corsOptions));
 
-// Single session configuration
+// Define database path before session config
+const dbPath = './employees.db';
+const dbDir = path.dirname(dbPath);
+
+// Ensure database directory exists
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Session configuration with error handling
 app.use(session({
-  store: new SQLiteStore({ db: dbPath }),
-  secret: process.env.SESSION_SECRET || 'dev-secret',
+  store: new SQLiteStore({ 
+    db: dbPath,
+    dir: './',
+    table: 'sessions',
+    concurrentDB: true // Enable concurrent access
+  }),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 24h
     httpOnly: true
   },
-  name: 'sessionId'
+  name: 'sessionId',
+  rolling: true // Refresh session with each request
 }));
+
+// Add error handling for session store
+app.use((err, req, res, next) => {
+  if (err.name === 'SessionStorageError') {
+    console.error('Session store error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+  next(err);
+});
 
 // Add this to parse JSON bodies
 app.use(express.json({ limit: '1mb' }));
@@ -74,25 +98,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const dbPath = './employees.db';  // Changed from database.sqlite
-const dbDir = './';
 
-// Tarkistetaan hakemisto
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
 
-// Tarkistetaan tietokantayhteys
-const sessionsDb = new SQLiteStore({
-    db: 'employees.db',  // Point to existing database
-    dir: './',
-    table: 'sessions'  // Specify sessions table
-});
 
-// Lisätään virheenkäsittely
-sessionsDb.on('error', function(error) {
-    console.error('Session store error:', error);
-});
 
 app.use((req, res, next) => {
   const allowedOrigins = [
