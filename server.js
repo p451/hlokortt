@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const cors = require('cors');
 const session = require('express-session');  // Tämä ennen SQLiteStorea
 const SQLiteStore = require('connect-sqlite3')(session);
@@ -36,20 +37,23 @@ app.use(cors(corsOptions));
 // Enable pre-flight requests for all routes
 app.options('*', cors(corsOptions));
 
-// Add this right after CORS configuration
+// Single session configuration
 app.use(session({
-  store: new SQLiteStore({ db: 'employees.db', dir: './', table: 'sessions' }),
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: true, // Changed to true
+  store: new SQLiteStore({
+    db: 'employees.db',
+    dir: './',
+    table: 'sessions'
+  }),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'none', // Required for cross-origin
+    sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true
   },
-  name: 'sessionId', // Explicit session cookie name
-  rolling: true // Refresh session with each request
+  name: 'sessionId'
 }));
 
 // Add this to parse JSON bodies
