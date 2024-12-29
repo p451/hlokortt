@@ -233,28 +233,19 @@ const requireAuth = (req, res, next) => {
 };
 
 // Admin middleware
-const requireAdmin = async (req, res, next) => {
+const requireAdmin = (req, res, next) => {
   console.log('Checking admin rights:', { sessionId: req.session.id, userId: req.session.userId });
   if (!req.session.userId) {
     console.log('Admin check failed: No userId in session');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  db.get(
-    'SELECT isAdmin FROM employees WHERE id = ?',
-    [req.session.userId],
-    (err, row) => {
-      if (err) {
-        console.error('Database error during admin check:', err);
-        return res.status(500).json({ error: 'Server error' });
-      }
-      if (!row || !row.isAdmin) {
-        console.log('Admin check failed:', { row });
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-      next();
-    }
-  );
+  if (!req.session.isAdmin) {
+    console.log('Admin check failed: User is not admin');
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  next();
 };
 
 
