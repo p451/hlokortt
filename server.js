@@ -76,8 +76,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Add this to parse JSON bodies
-app.use(express.json({ limit: '1mb' }));
+
 
 
 app.use(helmet());
@@ -100,30 +99,6 @@ const upload = multer({ storage: storage });
 
 
 
-
-
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://hlokortti.netlify.app' 
-  ];
-  
-  const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie');
-  }
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
 app.use(express.json({ limit: '1mb' }));
 
 
@@ -137,7 +112,7 @@ app.get('/api/placeholder/:width/:height', (req, res) => {
   res.sendFile(path.join(__dirname, 'uploads', 'default-logo.png'));
 });
 
-app.use(express.json());
+
 
 // Enable more detailed SQLite logging
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -258,29 +233,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // Admin middleware
-const requireAdmin = async (req, res, next) => {
-  console.log('Checking admin rights:', { sessionId: req.session.id, userId: req.session.userId });
-  if (!req.session.userId) {
-    console.log('Admin check failed: No userId in session');
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
 
-  db.get(
-    'SELECT isAdmin FROM employees WHERE id = ?',
-    [req.session.userId],
-    (err, row) => {
-      if (err) {
-        console.error('Database error during admin check:', err);
-        return res.status(500).json({ error: 'Server error' });
-      }
-      if (!row || !row.isAdmin) {
-        console.log('Admin check failed:', { row });
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-      next();
-    }
-  );
-};
 
 const checkAdmin = async (req, res, next) => {
   console.log('Admin check - Session:', req.session);
@@ -464,7 +417,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-app.options('/api/check-auth', cors(corsOptions));
+
 
 app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
   console.log('Checking auth status for user:', req.session.userId);
@@ -491,9 +444,7 @@ app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
       user.profileImage = user.profileImage || '/api/placeholder/400/400';
       user.logoUrl = user.logoUrl || '/api/placeholder/100/100';
 
-      // Asetetaan CORS-headerit eksplisiittisesti
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN);
+    
       
       res.json(user);
     }
