@@ -39,18 +39,14 @@ app.options('*', cors(corsOptions));
 
 // Single session configuration
 app.use(session({
-  store: new SQLiteStore({
-    db: 'employees.db',
-    dir: './',
-    table: 'sessions'
-  }),
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  store: new SQLiteStore({ db: dbPath }),
+  secret: process.env.SESSION_SECRET || 'dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true
   },
   name: 'sessionId'
@@ -78,20 +74,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const dbPath = './employees.db';  // Changed from database.sqlite
-const dbDir = './';
+
 
 // Tarkistetaan hakemisto
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
+
 
 // Tarkistetaan tietokantayhteys
-const sessionsDb = new SQLiteStore({
-    db: 'employees.db',  // Point to existing database
-    dir: './',
-    table: 'sessions'  // Specify sessions table
-});
+
 
 // Lisätään virheenkäsittely
 sessionsDb.on('error', function(error) {
