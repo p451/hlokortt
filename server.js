@@ -10,6 +10,7 @@ const csv = require('csv-parse');
 const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
@@ -266,6 +267,28 @@ const checkAdmin = async (req, res, next) => {
   next();
 };
 
+// Middleware to verify the Authorization header
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.sendStatus(401); // Unauthorized
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(403); // Forbidden
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Apply the middleware to protected routes
+app.use('/api/admin', verifyToken);
+app.use('/api/benefits', verifyToken);
+
 // Apply to admin routes
 app.use('/api/admin/*', checkAdmin);
 
@@ -416,14 +439,18 @@ app.post('/api/login', async (req, res) => {
     // Save session explicitly
     await new Promise(resolve => req.session.save(resolve));
 
-    // Send response with user data
+    // Generate JWT token
+    const accessToken = jwt.sign({ id: user.id, username: user.username, isAdmin: user.isAdmin }, process.env.ACCESS_TOKEN_SECRET);
+
+    // Send response with user data and token
     res.json({
       success: true,
       user: {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin === 1  // Ensure boolean conversion
-      }
+      },
+      accessToken
     });
   } catch (error) {
     console.error('Login error:', error);
