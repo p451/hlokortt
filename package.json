@@ -22,7 +22,8 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "jsonwebtoken": "^8.5.1"
   },
   "devDependencies": {
     "@types/react-router-dom": "^5.3.3",
