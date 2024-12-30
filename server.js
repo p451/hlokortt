@@ -114,6 +114,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// Ensure ACCESS_TOKEN_SECRET is set
+if (!process.env.ACCESS_TOKEN_SECRET) {
+  console.error('FATAL ERROR: ACCESS_TOKEN_SECRET is not defined.');
+  process.exit(1);
+}
+
 // Database initialization
 db.serialize(() => {
   // Employees table
