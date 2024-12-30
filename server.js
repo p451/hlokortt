@@ -77,9 +77,6 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-
-
-
 app.use(helmet());
 
 // Multer storage configuration
@@ -98,22 +95,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-
-
 app.use(express.json({ limit: '1mb' }));
-
 
 // Add static file serving for uploads
 app.use('/uploads', express.static('uploads'));
-
-
 
 app.get('/api/placeholder/:width/:height', (req, res) => {
   const { width, height } = req.params;
   res.sendFile(path.join(__dirname, 'uploads', 'default-logo.png'));
 });
-
-
 
 // Enable more detailed SQLite logging
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -124,7 +114,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// Database initialization
 // Database initialization
 db.serialize(() => {
   // Employees table
@@ -207,7 +196,6 @@ db.serialize(() => {
   });
 });
 
-
 // Database helper functions
 const getUserByUsername = (username) => {
   return new Promise((resolve, reject) => {
@@ -221,7 +209,6 @@ const getUserByUsername = (username) => {
     });
   });
 };
-
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -248,7 +235,6 @@ const requireAdmin = (req, res, next) => {
 
   next();
 };
-
 
 const checkAdmin = async (req, res, next) => {
   console.log('Admin check - Session:', req.session);
@@ -504,8 +490,6 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-
-
 // File upload endpoints with logging
 app.post('/api/admin/upload-employees', requireAdmin, upload.single('file'), (req, res) => {
   console.log('Employee file upload attempt');
@@ -689,38 +673,38 @@ const USER_FIELDS = `id, username, name, company, email, membershipLevel,
                     validUntil, startDate, logoUrl, profileImage, 
                     firstLogin, isAdmin`;
 
-                    app.get('/api/admin/employees', requireAdmin, (req, res) => {
-                      db.all(
-                        `SELECT ${USER_FIELDS} FROM employees`,
-                        (err, employees) => {
-                          if (err) {
-                            console.error('Database error fetching employees:', err);
-                            return res.status(500).json({ error: 'Server error' });
-                          }
-                          res.json(employees);
-                        }
-                      );
-                    });
+app.get('/api/admin/employees', requireAdmin, (req, res) => {
+  db.all(
+    `SELECT ${USER_FIELDS} FROM employees`,
+    (err, employees) => {
+      if (err) {
+        console.error('Database error fetching employees:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
+      res.json(employees);
+    }
+  );
+});
 
-                    app.get('/api/admin/employees/:id', requireAdmin, (req, res) => {
-                      console.log('Fetching employee:', req.params.id);
-                      
-                      db.get(
-                        `SELECT ${USER_FIELDS} FROM employees WHERE id = ?`,
-                        [req.params.id],
-                        (err, employee) => {
-                          if (err) {
-                            console.error('Database error fetching employee:', err);
-                            return res.status(500).json({ error: 'Server error' });
-                          }
-                          if (!employee) {
-                            console.log('Employee not found');
-                            return res.status(404).json({ error: 'Employee not found' });
-                          }
-                          res.json(employee);
-                        }
-                      );
-                    });
+app.get('/api/admin/employees/:id', requireAdmin, (req, res) => {
+  console.log('Fetching employee:', req.params.id);
+  
+  db.get(
+    `SELECT ${USER_FIELDS} FROM employees WHERE id = ?`,
+    [req.params.id],
+    (err, employee) => {
+      if (err) {
+        console.error('Database error fetching employee:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
+      if (!employee) {
+        console.log('Employee not found');
+        return res.status(404).json({ error: 'Employee not found' });
+      }
+      res.json(employee);
+    }
+  );
+});
 
 app.put('/api/admin/employees/:id', requireAdmin, (req, res) => {
   const { 
@@ -949,8 +933,6 @@ app.get('/api/benefits', requireAuth, (req, res) => {
     }
   );
 });
-
-
 
 // Server startup
 const PORT = process.env.PORT || 4000;  // Muutettu 3001 -> 8080
