@@ -477,8 +477,6 @@ app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
       user.profileImage = user.profileImage || '/api/placeholder/400/400';
       user.logoUrl = user.logoUrl || '/api/placeholder/100/100';
 
-    
-      
       res.json(user);
     }
   );
