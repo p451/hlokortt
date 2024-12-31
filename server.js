@@ -450,8 +450,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
-
 app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
   console.log('Checking auth status for user:', req.session.userId);
   console.log('Session:', req.session);  // Lisätään debug-loki
