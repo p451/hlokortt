@@ -16,7 +16,7 @@ const app = express();
 
 // Keep existing origins but add additional configuration
 const corsOptions = {
-  origin: ['https://hlokortti.netlify.app', 'http://localhost:3000'],
+  origin: ['https://hlokortti.netlify.app', 'http://localhost:4000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
