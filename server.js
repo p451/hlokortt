@@ -143,7 +143,13 @@ db.serialize(() => {
     logoUrl TEXT DEFAULT '/api/placeholder/100/100',
     firstLogin INTEGER DEFAULT 1,
     isAdmin INTEGER DEFAULT 0
-  )`);
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating employees table:', err);
+    } else {
+      console.log('Employees table created successfully');
+    }
+  });
 
   db.run(`CREATE TABLE IF NOT EXISTS benefits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,18 +157,36 @@ db.serialize(() => {
     title TEXT NOT NULL,
     description TEXT,
     validUntil TEXT
-  )`);
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating benefits table:', err);
+    } else {
+      console.log('Benefits table created successfully');
+    }
+  });
 
   db.run(`CREATE TABLE IF NOT EXISTS privacy_policy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`);
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating privacy_policy table:', err);
+    } else {
+      console.log('Privacy policy table created successfully');
+    }
+  });
 
   // Add default privacy policy if table is empty
   db.get('SELECT * FROM privacy_policy LIMIT 1', (err, row) => {
     if (!row) {
-      db.run(`INSERT INTO privacy_policy (content) VALUES (?)`, ['<h2>Tietosuojaseloste</h2><p>Tässä on sovelluksen tietosuojaseloste...</p>']);
+      db.run(`INSERT INTO privacy_policy (content) VALUES (?)`, ['<h2>Tietosuojaseloste</h2><p>Tässä on sovelluksen tietosuojaseloste...</p>'], (err) => {
+        if (err) {
+          console.error('Error inserting default privacy policy:', err);
+        } else {
+          console.log('Default privacy policy inserted successfully');
+        }
+      });
     }
   });
 
