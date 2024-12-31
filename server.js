@@ -450,6 +450,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Route to check authentication
 app.get('/api/check-auth', cors(corsOptions), requireAuth, (req, res) => {
   console.log('Checking auth status for user:', req.session.userId);
   console.log('Session:', req.session);  // Lisätään debug-loki
@@ -675,6 +676,7 @@ const USER_FIELDS = `id, username, name, company, email, membershipLevel,
                     validUntil, startDate, logoUrl, profileImage, 
                     firstLogin, isAdmin`;
 
+// Route to get all employees (admin)
 app.get('/api/admin/employees', requireAdmin, (req, res) => {
   db.all(
     `SELECT ${USER_FIELDS} FROM employees`,
