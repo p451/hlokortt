@@ -122,84 +122,69 @@ if (!process.env.ACCESS_TOKEN_SECRET) {
 
 // Database initialization
 db.serialize(() => {
-  // Employees table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS employees (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      name TEXT,
-      company TEXT,
-      email TEXT,
-      membershipLevel TEXT DEFAULT 'BRONZE',
-      validUntil TEXT,
-      startDate TEXT,
-      profileImage TEXT,
-      profileImageAdded INTEGER DEFAULT 0,
-      logoUrl TEXT DEFAULT '/api/placeholder/100/100',
-      firstLogin INTEGER DEFAULT 1,
-      isAdmin INTEGER DEFAULT 0
-    )
-  `);
+  // Drop existing tables if they exist
+  db.run(`DROP TABLE IF EXISTS employees`);
+  db.run(`DROP TABLE IF EXISTS benefits`);
+  db.run(`DROP TABLE IF EXISTS privacy_policy`);
 
-  // Benefits table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS benefits (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      level TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT,
-      validUntil TEXT
-    )
-  `);
+  // Recreate tables
+  db.run(`CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT,
+    name TEXT,
+    company TEXT,
+    email TEXT,
+    membershipLevel TEXT DEFAULT 'BRONZE',
+    validUntil TEXT,
+    startDate TEXT,
+    profileImage TEXT,
+    profileImageAdded INTEGER DEFAULT 0,
+    logoUrl TEXT DEFAULT '/api/placeholder/100/100',
+    firstLogin INTEGER DEFAULT 1,
+    isAdmin INTEGER DEFAULT 0
+  )`);
 
-  // Privacy policy table
-  db.run(`
-    CREATE TABLE IF NOT EXISTS privacy_policy (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      content TEXT NOT NULL,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  db.run(`CREATE TABLE IF NOT EXISTS benefits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    level TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    validUntil TEXT
+  )`);
 
-  // Tarkistetaan onko sarake jo olemassa
-  db.get(
-    `SELECT COUNT(*) as count FROM pragma_table_info('employees') 
-     WHERE name = 'profileImageAdded'`,
-    [],
-    (err, row) => {
-      if (err) {
-        console.error('Error checking column existence:', err);
-        return;
-      }
-      
-      if (row && row.count === 0) {
-        // Lisätään sarake jos sitä ei ole
-        db.run(
-          `ALTER TABLE employees 
-           ADD COLUMN profileImageAdded INTEGER DEFAULT 0`,
-          [],
-          (err) => {
-            if (err) {
-              console.error('Error adding profileImageAdded column:', err);
-            } else {
-              console.log('Successfully added profileImageAdded column');
-            }
-          }
-        );
-      }
-    }
-  );
+  db.run(`CREATE TABLE IF NOT EXISTS privacy_policy (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-  // Lisätään oletustietosuojaseloste jos taulukko on tyhjä
+  // Add default privacy policy if table is empty
   db.get('SELECT * FROM privacy_policy LIMIT 1', (err, row) => {
     if (!row) {
-      db.run(`
-        INSERT INTO privacy_policy (content) 
-        VALUES (?)
-      `, ['<h2>Tietosuojaseloste</h2><p>Tässä on sovelluksen tietosuojaseloste...</p>']);
+      db.run(`INSERT INTO privacy_policy (content) VALUES (?)`, ['<h2>Tietosuojaseloste</h2><p>Tässä on sovelluksen tietosuojaseloste...</p>']);
     }
   });
+
+  // Add a new admin user
+  const addAdminUser = async () => {
+    const username = 'admin';
+    const password = 'admin123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    db.run(`INSERT INTO employees (username, password, name, company, email, membershipLevel, validUntil, startDate, isAdmin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [username, hashedPassword, 'Admin User', 'Admin Company', 'admin@example.com', 'PLATINUM', '2099-12-31', '2023-01-01', 1], 
+      function(err) {
+        if (err) {
+          console.error('Error adding admin user:', err);
+        } else {
+          console.log('Admin user added successfully');
+        }
+      }
+    );
+  };
+
+  addAdminUser();
 });
 
 // Database helper functions
