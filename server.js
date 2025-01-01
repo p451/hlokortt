@@ -293,9 +293,6 @@ const verifyToken = (req, res, next) => {
 app.use('/api/admin', verifyToken);
 app.use('/api/benefits', verifyToken);
 
-// Apply to admin routes
-app.use('/api/admin/*', checkAdmin);
-
 app.post('/api/upload-profile-image', requireAuth, upload.single('profileImage'), async (req, res) => {
   console.log('Profile image upload attempt:', req.file);
   
