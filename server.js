@@ -59,10 +59,10 @@ app.use(session({
     concurrentDB: true // Enable concurrent access
   }),
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
-  resave: false,
+  resave: true,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    secure: true,
     sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000, // 24h
     httpOnly: true
