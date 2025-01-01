@@ -14,6 +14,9 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
+// Add trust proxy setting
+app.set('trust proxy', 1); // Trust first proxy
+
 // Keep existing origins but add additional configuration
 const corsOptions = {
   origin: ['https://hlokortti.netlify.app', 'http://localhost:4000'],
